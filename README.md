@@ -7,5 +7,7 @@ I will put challenges 1-11 write-ups here, if I managed to solve 12, I'll also u
 
 > If you think my approach has some mistakes, or there is better/faster approach, please tell me.
 
+> There are many approaches to solve each of there challenges, in my writeups I go with one approach. Sometimes my solutions takes a very long time compared to the writeups of the authors.
+
 [this](https://www.fireeye.com/blog/threat-research/2019/09/2019-flare-on-challenge-solutions.html) link has the statistics of the CTF.
-As well as write-ups by the authers of the challenges.
+As well as write-ups by the authors of the challenges.
