@@ -1,4 +1,4 @@
-Memecat Battelstation
+Memecat Battelstation <!-- omit in toc -->
 ---
 
 ```
@@ -16,7 +16,6 @@ $ file MemeCatBattlestation.exe
 MemeCatBattlestation.exe: PE32 executable (GUI) Intel 80386 Mono/.Net assembly, for MS Windows
 ```
 
-- [Memecat Battelstation](#memecat-battelstation)
 - [Introduction](#introduction)
 - [Information collecting](#information-collecting)
 - [Solution](#solution)
