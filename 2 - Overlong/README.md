@@ -1,4 +1,4 @@
-Overlong
+Overlong <!-- omit in toc -->
 ---
 
 ```
@@ -15,23 +15,18 @@ Overlong.exe: PE32 executable (GUI) Intel 80386, for MS Windows
 
 ## Introduction
 
-This time is an exe binary file.
-
-In binary exe like this, we would mostly work with assembly (its a very important skill to have as a reverse engineer).
+In binary exe like this, we would mostly work with assembly.
 
 Some popular tools to use are `radare2`, `IDA` and `Ghidra`.
 
 This time I'll be using `Ghidra`.
 
-Creating a new project in `Ghidra` then adding Overlong.exe and analyse it using the default options.
-
 ## Solution
 
-After opening the exe in `Ghidra` and navigating to `function` in the left panel.
+After opening the exe in `Ghidra` we find that there is only 3 functions, and no `main`. But there is `entry` function which is the entry point of the binary.
 
-There is only 3 functions with no main. But there is `entry` function (`_start` sometimes) which is the entry point of the binary.
+Decompilation of `entry`:
 
-`Ghidra` has a decompiler and this is the decompilation of `entry`:
 ``` C
 undefined4 entry(void)
 {
@@ -45,7 +40,7 @@ undefined4 entry(void)
 }
 ```
 
-From above it calls `FUN_00401160` with `DAT_00402008`(global variable) and `0x1c` and store it I guess in `local_88` buffer.
+From above it calls `FUN_00401160` with `DAT_00402008`(global variable) and `0x1c`, similar to `memcpy` of some sort.
 
 Because `local_88` is a result buffer, maybe `DAT_00402008` is a buffer/string too.
 
