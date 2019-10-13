@@ -1,4 +1,4 @@
-Dnschess
+Dnschess <!-- omit in toc -->
 ---
 
 ```
@@ -16,6 +16,8 @@ ChessAI.so:   ELF 64-bit LSB shared object, x86-64, version 1 (SYSV), dynamicall
 
 - [Introduction](#introduction)
 - [Information Collection](#information-collection)
+  - [ChessUI](#chessui)
+  - [ChessAI.so](#chessaiso)
 - [Solution](#solution)
 
 ## Introduction
@@ -26,9 +28,7 @@ This time its a Linux executable along with a dynamic library
 Also there is a (.pcap) file which is a capture of network traffic.
 
 This challenge's name is `DNS`chess, so it has something to do with
-`DNS` (Domain Name System) resolution which is a method for a device
-to get the `IP` address of a website from its domain name. So this
-`pcap` might have these captures.
+`DNS` (Domain Name System). This `pcap` might have `DNS` captures.
 
 
 ## Information Collection
@@ -37,50 +37,35 @@ Lets check the `pcap` file first:
 
 ![pcap first view](screenshots/pcap_first_view.png)
 
-All the `pcap` is just `DNS` requests and responds, highlighted the
-first two. From the picture it appears that the app sends a request
+All the `pcap` is just `DNS` requests and responds. The app sends a requests
 to a subdomain of `game-of-thrones.flare-on.com`. And this subdomain
 appears to be kind of a chess piece move.
 
 Example:
 - move `rock`   from `c3` to `c6`.
-- move `knight` from `g1` to `f3`. 
+- move `knight` from `g1` to `f3`.
 
-That's a really weird to send a chess move into a server.
+That's a really weird way to send a chess move into a server.
 
-<br>
-Next, lets look at the game. ChessUI first.
+### ChessUI
+In this challenge there is a `main` function, so lets check it.
 
-We are going to use `Ghidra` also for this challenge.
-
-In this challenge there is a main function, so lets check it.
 ``` C
-// this code is generated using `Ghidra`'s decompilation.
+// this code is generated using Ghidra's decompilation.
 int main(int uParm1,char *uParm2)
 {
-    int iVar1;
-    undefined8 uVar2;
-    undefined8 uVar3;
-    
-    DAT_0010d118 = gtk_target_entry_new("x-chessblaster/move",1,0);
-    DAT_0010d108 = gtk_target_list_new(DAT_0010d118,1);
-    uVar2 = gtk_application_new("com.flare-on.chessblaster",0);
-
+    /*
+    ... trunked
+    */
     // FUN_00103ab0 seems interesting because its the only
     // function refernce.
-    // Ghidra, puts `FUN_` if the global reference is a function
-    // and `DAT_` if its normal data. 
     g_signal_connect_data(uVar2,"activate",FUN_00103ab0,0,0,0);
-    uVar3 = g_application_get_type();
-    uVar3 = g_type_check_instance_cast(uVar2,uVar3);
-    iVar1 = g_application_run(uVar3,(ulong)(uint)uParm1,uParm2);
-    g_object_unref(uVar2);
-    return iVar1;
+    /*
+    ... trunked
+    */
 }
 ```
-
-From the main function, and after some research. it turned out that this is a gnome application.
-
+From the main function, and after some research. it turned out that this is a `gnome application`.
 
 This is an example of `Hello World` of `gnome` application:
 
@@ -109,34 +94,26 @@ main (int argc, char **argv)
     int status;
 
     app = gtk_application_new (NULL, G_APPLICATION_FLAGS_NONE);
-    g_signal_connect (app, "activate", G_CALLBACK (activate), NULL);
+    g_signal_connect (app, "activate", G_CALLBACK (activate), NULL);    // same as above
     status = g_application_run (G_APPLICATION (app), argc, argv);
     g_object_unref (app);
 
     return status;
 }
 ```
-
-<br>
-`FUN_00103ab0` is interesting, so let's check it:
-
+next is `FUN_00103ab0`:
 ``` C
 void FUN_00103ab0(undefined8 uParm1)
 {
     /*
-        removed uninteresting local variables
+    ... trunked
     */
     undefined8 error_holder;
     long chessAILib;
     undefined *getAIName_func;
     undefined *getAIGreeting_func;
-    
     /*
-    ...
-
-    Code removed from here because it is about `gnome` GUI and didn't seem interesting. 
-        
-    ...
+    ... trunked
     */
 
     // opens the `ChessAI` shared library file
@@ -145,31 +122,28 @@ void FUN_00103ab0(undefined8 uParm1)
 
         // gets `getAiName` function reference.
         getAIName_func = (undefined *)dlsym(chessAILib, "getAiName");
-        if (getAIName_func == (undefined *)0x0) {
-            error_holder = dlerror();
-            __fprintf_chk(stderr,1,"%s: %s\n","dlsym",error_holder);
-        }
+        /*
+        ... trunked
+        */
 
         // gets `getAiGreeting` function reference.
         getAIGreeting_func = (undefined *)dlsym(chessAILib, "getAiGreeting");
-        if (getAIGreeting_func == (undefined *)0x0) {
-            error_holder = dlerror();
-            __fprintf_chk(stderr,1,"%s: %s\n","dlsym",error_holder);
-        }
+        /*
+        ... trunked
+        */
 
         // gets `getNextMove` function reference.
         `_global_getNextMove_func` = dlsym(chessAILib, "getNextMove");
-        if (_global_getNextMove_func == 0) {
-            error_holder = dlerror();
-            __fprintf_chk(stderr,1,"%s: %s\n","dlsym",error_holder);
-        }
+        /*
+        ... trunked
+        */
 
         // call getAIName and getAIGreeting and store results
         // in global variables
         DAT_0010d078 = (*(code *)getAIName_func)();
         DAT_0010d070 = (*(code *)getAIGreeting_func)();
         /*
-            cleaning up
+            ... trunked, cleaning up
         */
 
         // this seems to start the game loop and logic
@@ -177,28 +151,25 @@ void FUN_00103ab0(undefined8 uParm1)
         return;
     }
     /*
-        case if the library file was not found
+    ... trunked
     */
 }
 ```
-
-Lets decode the above function After removing uninteresting code (`gnome` related).
-
+The code above:
 - It opens `ChessAi.so` library and gets three functions:
-    - getAIName
-    - getAIGreeting
-    - getNextMove
+    - `getAIName`
+    - `getAIGreeting`
+    - `getNextMove`
 - `getAIName` and `getAIGreeting` are called once and the result is stored in global variables. After that the function is not being called again.
 - `getNextMove` is not being called in this function but instead is being stored in a global variable. So its mostly called from other places.
-- `FUN_00103a40` which seems an interesting function because its the only way
-to go next is being called.
+- `FUN_00103a40` which seems an interesting function because
+its the only way to go next is being called.
 
-We are not analysing `FUN_00103a40` as we can get XREF of
-`_global_getNextMove_func` as it seems more interesting.
+Because `FUN_00103a40` seems like a logic/loop handler we 
+are going for `_global_getNextMove_func`.
 
 We get two XREF of `_global_getNextMove_func`:
 - A `mov` instruction, which is the instruction that stores the reference to it.
-So its not interesting now.
 - A `call` instruction from `FUN_00104310` which is more interesting.
 
 ``` C
@@ -212,20 +183,13 @@ int FUN_00104310(uint *arg1)
                 &local_138);            // place holder for buffer
 
     /*
-    ...
-        removed code
-    ...
+    ... trunked
     */
     DAT_0010d120 = DAT_0010d120 + 1; // global counter, increment
 }
 ```
-
-We still can't make anything out of the above code.
-
-Now we need to go to `ChessAI.so` library.
-
-Listing for the three used functions from `ChessAI.so` library:
-
+### ChessAI.so
+ `ChessAI.so` has 3 exported functions:
 ``` C
 char *getAiGreeting(void)
 {
@@ -241,48 +205,36 @@ char *getAiGreeting(void)
 ulong getNextMove(uint arg1,char *arg2,uint arg3,uint arg4,uint *arg5)
 {
     hostent *hostNetStruct;
-    ulong returnValue;
     char buffer [72];
     char *ipAddress;
     
-    // start the string with `arg2`
-    // from below, this is the chess piece name. (rook, knight, ...)
+    // arg2 is chess piece name
     strcpy(buffer,arg2);
 
-    // unknown function
-    // from below, arg3 is `from` location of chess piece move
-    // `FUN_00101145` will translate it into the correct form and
-    // `strcat` it with `buffer`.
-    //
-    // same way `arg4` is the `to` location of movement.
+    // FUN_00101145 decodes arg3 & arg4 to chess position string
+    // and `strcat` it to buffer.
     FUN_00101145(buffer,(ulong)arg3,(ulong)arg3);
     FUN_00101145(buffer,(ulong)arg4,(ulong)arg4);
 
     // add the main domain for the DNSchess
     strcat(buffer,".game-of-thrones.flare-on.com");
 
-    // refer below to man of `gethostbyname`
+    // resolve domain name
     hostNetStruct = gethostbyname(buffer);
 
-    if (
-        // if hostNetStruct == NULL
-        (hostNetStruct == (hostent *)0x0) ||
+    if ((hostNetStruct == NULL) ||
         // get the ip address and check if the first part is not equal to (127)
-        (ipAddress = *hostNetStruct->h_addr_list, *ipAddress != 0x7f) ||
+        (ipAddress = *hostNetStruct->h_addr_list, *ipAddress != 127) ||
         // check if the last part of ip is odd
         ((ipAddress[3] & 1U) != 0) ||
         // check if the lowest 4 bits of the third part of the ip is 
         // not equal to the `arg1` which is the global counter from
         // chessUI
         (arg1 != ((uint)(byte)ipAddress[2] & 0xf))) {
-            // not sure what does 2 mean
-            returnValue = 2;
-        // return
+            /*
+            .. trunked
+            */
     } else {
-        // if ALL above is false
-
-        sleep(1);
-
         // DAT_00102020 is a binary data (check below)
         //
         // DAT_00104060 is '\0' * 30 + "@flare-on.com"
@@ -294,86 +246,35 @@ ulong getNextMove(uint arg1,char *arg2,uint arg3,uint arg4,uint *arg5)
         (&DAT_00104060)[(ulong)(arg1 * 2)] = (&DAT_00102020)[(ulong)(arg1 * 2)] ^ ipAddress[1];
         (&DAT_00104060)[(ulong)(arg1 * 2 + 1)] = (&DAT_00102020)[(ulong)(arg1 * 2 + 1)] ^ ipAddress[1];
 
-        // set some values for arg5 buffer in the first two slots
-        *arg5 = (uint)((byte)ipAddress[2] >> 4);
-        arg5[1] = (uint)((byte)ipAddress[3] >> 1);
-
         /*
-        `PTR_s_A_fine_opening_00104120` is a pointer to an array
-        with statements like:
-        - "A fine opening"
-        - "Still within book"
-        - "Interesting gambit"
-        - "I must find counterplay"
-        - "That's risky..."
-        and more...
+        ... trunked
         */
-        // copy one of the statements to arg5, but after 2 values
-        strcpy((char *)(arg5 + 2),(&PTR_s_A_fine_opening_00104120)[(ulong)arg1]);
-        
-        returnValue = (ulong)((byte)ipAddress[3] >> 7);
     }
-
-    return returnValue;
-}
-```
-
-part of `man gethostbyname`:
-
-``` C
-struct hostent *gethostbyname(const char *name);
-struct hostent {
-    char  *h_name;            /* official name of host */
-    char **h_aliases;         /* alias list */
-    int    h_addrtype;        /* host address type */
-    int    h_length;          /* length of address */
-    // the only used is `h_addr_list` in the getNextMove
-    char **h_addr_list;       /* list of addresses */
 }
 ```
 
 the content of `DAT_00102020`, len == 30: 
-
 ```
 79 5a b8 bc ec d3 df dd 99 a5 b6 ac 15 36 85 8d 09 08 77 52 4d 71 54 7d a7 a7 08 16 fd d7
 ```
 
 In conclusion:
-- there is some intensive check at the beginning of `getNextMove`, and if they all passed. Then two bytes are decrypted and stored into the flag string buffer.
-    - hostNetStruct must be NOT NULL
-    - the first entry in the ip address is (127)
-    - the last entry in the ip address is not odd
+- there is some checks at the beginning of `getNextMove`, and if they all passed. Then two bytes are decrypted and stored into the flag string buffer.
+    - hostNetStruct must be NOT NULL.
+    - the first entry in the ip address is (127).
+    - the last entry in the ip address is even.
     - the lowest 4 bits of the third entry in the ip address is equal to the counter passed as `arg1` to `getNextMove` 
-- `DAT_00102020` is the encrypted flag, its encrypted by XOR with the second
+- `DAT_00102020` is the encrypted flag, its decrypted by XOR with the second
 value of the ip address which is being obtained from the DNS server if the checks passed.
-- each two subsequent values from `DAT_00102020` is being encrypted by the same key.
-    - `79` & `5a`
-    - `b8` & `bc`
-    - ...
+- each decryption cycle decrypts two bytes.
 - the pcap attached is mostly a recording of someone who won the game. All IP address are stored in it.
 
 ## Solution
+The IP addresses from the `pcap` file is extracted in [address.txt](addresses.txt).
 
-Because we know that the key to win is in the resounds of the DNSs in the pcap file, we need to extract them.
+The solution is written in python [here](solution_script.py).
 
-In Wireshark. The address of a DNS respond is in:
-- DNS (respond)
-    - Answers
-        - `the domain name`
-            - Address <- HERE
-
-To Export it:
-1) Apply the `Address` as a column.
-2) File -> Export Packet Dissections -> As CSV (or any other)
-3) `cut -f7 -d,  data.csv | grep "127.*" -o > addresses.txt` 
-to just extract the addresses and store them in `address.txt`
-
-Now that this info is ready to use, we can decrypt the flag:
-
-The solution is written in python [here](solution_script.py)
-
-Highlights here:
-
+Highlights:
 - read the addresses from the file
 ``` python
 addresses_file = open('addresses.txt', 'r')
@@ -394,7 +295,6 @@ encoded_flag = [121, 90, 184, 188, ...]
 
 decoded_flag = [0] * len(encoded_flag)
 ```
-
 from the checks in `getNextMove` the first two are always true, and we need to focus on the last two.
 
 - decrypt the flag
@@ -419,16 +319,3 @@ When running the script we get
 ```
 flag: LooksLikeYouLockedUpTheLookupZ@flare-on.com
 ```
-
-
-
-
-
-
-
-
-
-
-
-
-
