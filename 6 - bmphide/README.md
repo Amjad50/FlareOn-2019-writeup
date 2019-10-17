@@ -1,4 +1,4 @@
-bmphide
+bmphide <!-- omit in toc -->
 ---
 
 ```
@@ -13,13 +13,22 @@ image.bmp:   PC bitmap, Windows 3.x format, 1664 x 1248 x 24
 
 - [Introduction](#introduction)
 - [Information Collection](#information-collection)
+  - [removing anti-debugging](#removing-anti-debugging)
+  - [Understanding `Init`](#understanding-init)
+  - [Methods analysis](#methods-analysis)
+    - [Program.b](#programb)
+    - [Program.d](#programd)
+    - [Program.e](#programe)
+    - [Program.g](#programg)
+    - [Program.j](#programj)
+    - [Program.i](#programi)
 - [Solution](#solution)
 
 ## Introduction
 
 From `file` output this is a `.NET` executable, the same as `challenge 1`.
 <br>
-We can use `dnSpy-x86` because its `32 bit` executable. 
+We can use `dnSpy`.
 
 ## Information Collection
 
@@ -155,9 +164,9 @@ pixel colors in the input image with the data, lastly, saves the image in
 the `output image` argument.
 
 Important methods:
-- `Program.Init`
-- `Program.h`
-- `Program.i`
+- `Program.Init`    // Init something about methods.
+- `Program.h`       // transform the data bytes.
+- `Program.i`       // writes pixels
 
 From `Program.Init` there is `A.calculateStack` which calls `A.IdentifyLocals` and that seems complex.
 
@@ -189,7 +198,7 @@ We see that a very large call stack is there with alternating calls to
 
 Then `Program.Init` and `Program.Main`.
 
-`A.c` isn't refernced anywhere other than `A.IncrementMaxStack`.
+`A.c` isn't referenced anywhere other than `A.IncrementMaxStack`.
 <br>
 And `A.IncrementMaxStack` isn't called directly but assigned as a handler to
 some event/hook, which is set in `A.IdentifyLocals` which is called from
@@ -197,18 +206,11 @@ some event/hook, which is set in `A.IdentifyLocals` which is called from
 
 ![IdentifyLocals function](screenshots/IdentifyLocals_func.png)
 
-
 An idea, is to remove the invocation of `A.calculateStack` from `Program.Init` and see if that removes the anti-debugging.
 
 We can do this by replacing the call instruction with `nop` instructions.
 
-Using `dnSpy` we can edit `IL instruction` of any method.
-<br>
-In the view of `IL instructions` of `Program.Init` we can replace instruction with `nop`s with `R` shortcut or with the menu popup.
-
 ![Program.Init IL instructions](screenshots/Program_Init_IL.png)
-
-After edits, the binary must be saved `Save Module` from `File`.
 
 Trying to run the program after the edit, and making sure the call to
 `A.calculateStack` is not there. IT WORKS, and no exceptions are thrown.
@@ -233,20 +235,20 @@ private unsafe static uint IncrementMaxStack(IntPtr self, A.ICorJitInfo * comp, 
             if (flag3)
             {
                 uint flNewProtect;
-                A.VirtualProtect((IntPtr)((void * ) info - > ILCode), info - > ILCodeSize, 4 u, out flNewProtect);
-                Marshal.WriteByte((IntPtr)((void * ) info - > ILCode), 23, 20);
-                Marshal.WriteByte((IntPtr)((void * ) info - > ILCode), 62, 20);
-                A.VirtualProtect((IntPtr)((void * ) info - > ILCode), info - > ILCodeSize, flNewProtect, out flNewProtect);
+                A.VirtualProtect((IntPtr)((void * ) info->ILCode), info->ILCodeSize, 4 u, out flNewProtect);
+                Marshal.WriteByte((IntPtr)((void * ) info->ILCode), 23, 20);
+                Marshal.WriteByte((IntPtr)((void * ) info->ILCode), 62, 20);
+                A.VirtualProtect((IntPtr)((void * ) info->ILCode), info->ILCodeSize, flNewProtect, out flNewProtect);
             } else {
                 // 100663316 == 0x6000014
                 // token of Program.g
                 bool flag4 = methodBase.MetadataToken == 100663316;
                 if (flag4) {
-                uint flNewProtect2;
-                A.VirtualProtect((IntPtr)((void * ) info - > ILCode), info - > ILCodeSize, 4 u, out flNewProtect2);
-                Marshal.WriteInt32((IntPtr)((void * ) info - > ILCode), 6, 309030853);
-                Marshal.WriteInt32((IntPtr)((void * ) info - > ILCode), 18, 209897853);
-                A.VirtualProtect((IntPtr)((void * ) info - > ILCode), info - > ILCodeSize, flNewProtect2, out flNewProtect2);
+                    uint flNewProtect2;
+                    A.VirtualProtect((IntPtr)((void * ) info - > ILCode), info - > ILCodeSize, 4 u, out flNewProtect2);
+                    Marshal.WriteInt32((IntPtr)((void * ) info - > ILCode), 6, 309030853);
+                    Marshal.WriteInt32((IntPtr)((void * ) info - > ILCode), 18, 209897853);
+                    A.VirtualProtect((IntPtr)((void * ) info - > ILCode), info - > ILCodeSize, flNewProtect2, out flNewProtect2);
                 }
             }
         }
@@ -257,11 +259,11 @@ private unsafe static uint IncrementMaxStack(IntPtr self, A.ICorJitInfo * comp, 
 
 In short, the code above changes:
 - Program.h (`0x6000015`)
-    - offset  = 23(0x17), data = 20(0x14)
-    - offset  = 62(0x3e), data = 20(0x14)
+    - offset  = `23(0x17)`, data = `20(0x14)`
+    - offset  = `62(0x3e)`, data = `20(0x14)`
 - Program.g (`0x6000014`)
-    - offset  =  6(0x06), data = 309030853(0x126b6fc5) - little_endian(0xc56f6b12)
-    - offset  = 18(0x12), data = 209897853(0x0c82c97d) - little_endian(0x7dc9820c)
+    - offset  =  `6(0x06)`, data = `309030853(0x126b6fc5)` - `little_endian(0xc56f6b12)`
+    - offset  = `18(0x12)`, data = `209897853(0x0c82c97d)` - `little_endian(0x7dc9820c)`
 
 So the program changes these values during runtime.
 <br>
@@ -269,7 +271,7 @@ Didn't find any other things like that in calling `A.calculateStack`.
 
 What we can do, is to modify the binary in these locations and remove the calling of `A.calculateStack`.
 
-Using `dnSpy` hex editor to change values at these offsets. (using little_endian formats).
+Using `dnSpy` hex editor to change values at these offsets.
 
 ### Understanding `Init`
 
@@ -410,17 +412,11 @@ public static byte e(byte b, byte k)
 This is `XOR`. In a hard way.
 
 #### Program.g
-``` C#
-public static byte g(int idx)
-{
-	byte b = (byte)((long)(idx + 1) * (long)((ulong)309030853));
-	byte k = (byte)((idx + 2) * 209897853);
-	return Program.e(b, k);
-}
-```
+> Code above.
+
 Looks like some kind of hash. Didn't try to understand it because it is
 called always with the counter `num` and not with the data, so
-the results may be constant.
+the results are constants in this program.
 
 #### Program.j
 This is a very complex function, and its called with constants.
@@ -436,7 +432,9 @@ List of all values of `j()`:
 - `j(25) == 252`
 - `j(100) == 6`
 
-After edits:
+#### Program.i
+After getting the values of `j` function calls.
+
 ``` C#
 public static void i(Bitmap bm, byte[] data)
 {
@@ -489,11 +487,10 @@ def leftRotate(num, amount):
         num = ((num << 1) & 0xff) + ((num & 128) // 128)
     
     return num & 0xff
-
-# and we have ^ for XOR
 ```
 
 Next, we implement `h`:
+
 ``` python
 data = extract_encoded_data()
     
