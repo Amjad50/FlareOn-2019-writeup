@@ -11,3 +11,6 @@ I will put challenges 1-11 write-ups here, if I managed to solve 12, I'll also u
 
 [this](https://www.fireeye.com/blog/threat-research/2019/09/2019-flare-on-challenge-solutions.html) link has the statistics of the CTF.
 As well as write-ups by the authors of the challenges.
+
+
+> Note: The password for the `.7z` files is **flare**.
